@@ -10,14 +10,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fariazz/phaser3-frogger-demo.git"
+    "url": "git+https://github.com/HurleyBird402/BorkGame2.git"
   },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/fariazz/phaser3-frogger-demo/issues"
-  },
-  "homepage": "https://github.com/fariazz/phaser3-frogger-demo#readme",
+  "homepage": "https://github.com/HurleyBird402/BorkGame2.git",
   "dependencies": {
     "phaser": "^3.55.2",
     "vite": "^4.1.4"
