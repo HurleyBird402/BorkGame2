@@ -1,16 +1,10 @@
 // create a new scene named "Game"
 let gameScene = new Phaser.Scene('Game');
 
-// game parameters
-// gameScene.playerSpeed = 1.5;
-// gameScene.enemySpeed = 2;
-// gameScene.enemyMaxY = 280;
-// gameScene.enemyMinY = 80;
-// gameScene.isPlayerAlive = true;
 
 // some parameters for our scene
 gameScene.init = function() {
-  this.playerSpeed = 1.5;
+  this.playerSpeed = 1.75;
   this.enemySpeed = 2;
   this.enemyMaxY = 280;
   this.enemyMinY = 80;
@@ -21,9 +15,10 @@ gameScene.preload = function() {
 
   // load images
   this.load.image('background', 'assets/background.png');
-  this.load.image('player', 'assets/player.png');
-  this.load.image('dragon', 'assets/dragon.png');
-  this.load.image('treasure', 'assets/treasure.png');
+  this.load.image('space_viking', 'assets/space_viking.png');
+  this.load.image('aether', 'assets/aether.png');
+  this.load.atlas('player', 'assets/player.png', 'assets/player_atlas.json');
+  this.load.animation('player_anim', 'assets/player_anim.json');
 };
 
 // executed once, after assets were loaded
@@ -42,12 +37,12 @@ gameScene.create = function() {
   this.player.setScale(0.5);
 
   // goal
-  this.treasure = this.add.sprite(this.sys.game.config.width - 80, this.sys.game.config.height / 2, 'treasure');
-  this.treasure.setScale(0.6);
+  this.aether = this.add.sprite(this.sys.game.config.width - 80, this.sys.game.config.height / 2, 'aether');
+  this.aether.setScale(0.6);
 
   // group of enemies
   this.enemies = this.add.group({
-    key: 'dragon',
+    key: 'space_viking',
     repeat: 5,
     setXY: {
       x: 110,
@@ -65,12 +60,69 @@ gameScene.create = function() {
     enemy.speed = Math.random() * 2 + 1;
   }, this);
 
+  // game over text
+  this.gameOverText;
+
+  this.gameOverText = this.add.text(
+    this.sys.game.config.width * 0.5,
+    this.sys.game.config.height * 0.5,
+    "Game Over!",
+    { font: "50px Arial", fill: "#EE4B2B"
+  });
+  this.gameOverText.setOrigin(0.5);
+  this.gameOverText.visible = false;
+
+  // You Win! text
+
+  this.youWinText;
+
+  this.youWinText = this.add.text(
+    this.sys.game.config.width * 0.5,
+    this.sys.game.config.height * 0.5,
+    "You Win!",
+    { font: "50px Arial", fill: "#FFD700"
+  });
+  this.youWinText.setOrigin(0.5);
+  this.youWinText.visible = false;
+  
+  // set lives
+  this.playerLives = 3
+  this.livesText;
+  this.lifeLostText;
+
+  this.livesText = this.add.text(this.sys.game.config.width - 5, 5, `Lives: ${this.playerLives}`, {
+    font: "18px Arial",
+    fill: "#ffffff",
+  });
+  this.livesText.setOrigin(1, -3);
+  this.lifeLostText = this.add.text(
+    this.sys.game.config.width * 0.5,
+    this.sys.game.config.height * 0.5,
+    "Life lost!",
+    { font: "18px Arial", fill: "#ffffff" }
+  );
+  this.lifeLostText.setOrigin(0.5);
+  this.lifeLostText.visible = false;
+
   // player is alive
-  this.isPlayerAlive = true;
+  if (this.playerLives >= 0) {
+    this.isPlayerAlive = true;
+  }
+  else if (this.playerLives == 0) {
+    this.isPlayerAlive = false;
+  }
+
+  // reset camera
+  this.cameras.main.resetFX();
 };
+
+// game scene is set - everything below is playing
 
 // executed on every frame (60 times per second)
 gameScene.update = function() {
+
+  // animation
+  this.player.anims.play('player_standstill', true);
 
   // only if the player is alive
   if (!this.isPlayerAlive) {
@@ -82,11 +134,13 @@ gameScene.update = function() {
 
     // player walks
     this.player.x += this.playerSpeed;
+    this.lifeLostText.visible = false;
+    this.player.anims.play('player_walk_right', true);
   }
 
-  // treasure collision
-  if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.treasure.getBounds())) {
-    this.gameOver();
+  // aether collision
+  if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.aether.getBounds())) {
+    this.youWin();
   }
 
   // enemy movement and collision
@@ -107,37 +161,60 @@ gameScene.update = function() {
 
     // enemy collision
     if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), enemies[i].getBounds())) {
-      this.gameOver();
+      this.loseLife();
       break;
     }
   }
 };
 
-gameScene.gameOver = function() {
+gameScene.loseLife = function() {
+
+  // subtract one from lives
+  this.playerLives --;
+
+  if (this.playerLives) {
+    this.livesText.setText(`Lives: ${this.playerLives}`);
+    this.lifeLostText.visible = true;
+  } 
+  else {
+    this.gameOverText.visible = true;
+
+  // fade camera
+  this.time.delayedCall(1000, function() {
+    this.cameras.main.fade(250);
+  }, [], this);    
+
+  // restart game
+    this.time.delayedCall(3000, function() {
+    this.scene.restart();
+  }, [], this);
+  }
+
+  // shake the camera
+  this.cameras.main.shake(200);
+
+  // reset sprite to starting position
+  this.player.setPosition(40, this.sys.game.config.height / 2)
+};
+
+gameScene.youWin = function() {
 
   // flag to set player is dead
   this.isPlayerAlive = false;
 
   // shake the camera
-  this.cameras.main.shake(500);
+  this.cameras.main.shake(100);
 
-  // fade camera
-  this.time.delayedCall(250, function() {
-    this.cameras.main.fade(250);
-  }, [], this);
+  this.youWinText.visible = true;
 
   // restart game
-  this.time.delayedCall(500, function() {
-    this.scene.manager.bootScene(this);
+  this.time.delayedCall(3000, function() {
+    this.scene.restart();
   }, [], this);
 
-  // reset camera effects
-  this.time.delayedCall(600, function() {
-    this.cameras.main.resetFX();
-  }, [], this);
+  this.youWinText.visible = true;
+
 };
-
-
 
 // our game's configuration
 let config = {
@@ -149,3 +226,5 @@ let config = {
 
 // create the game, and pass it the configuration
 let game = new Phaser.Game(config);
+
+// need to move game over from alert to on screen text and restart game.
